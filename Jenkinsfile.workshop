@@ -1,0 +1,50 @@
+pipeline {
+  agent {
+      label 'maven'
+  }
+  stages {
+    stage('Build JAR') {
+      steps {
+        git url: 'http://nationalparksworkshop-git-user3.apps.cluster-scl-791c.scl-791c.example.opentlc.com/'
+        sh "cp .settings.xml ~/.m2/settings.xml"
+        sh "mvn package"
+      }
+    }
+    stage('Archive JAR') {
+      steps {
+        sh "mvn deploy -DskipTests"
+      }
+    }
+    stage('Build Image') {
+      steps {
+        script {
+          openshift.withCluster() {
+            openshift.withProject() {
+              openshift.startBuild("nationalparksworkshop-git",
+                                   "--from-file=target/nationalparks.jar",
+                                   "--wait")
+            }
+          }
+        }
+      }
+    }
+    stage('Deploy') {
+      steps {
+        script {
+          openshift.withCluster() {
+            openshift.withProject() {
+              def result, dc = openshift.selector("dc", "nationalparksworkshop-git")
+              dc.rollout().latest()
+              timeout(10) {
+                  result = dc.rollout().status("-w")
+              }
+              if (result.status != 0) {
+                  error(result.err)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
