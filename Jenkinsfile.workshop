@@ -5,7 +5,7 @@ pipeline {
   stages {
     stage('Build JAR') {
       steps {
-        git url: 'http://nationalparksworkshop-git-user3.apps.cluster-scl-791c.scl-791c.example.opentlc.com/'
+        git url: 'https://github.com/tvalenzuela/nationalparksworkshop'
         sh "cp .settings.xml ~/.m2/settings.xml"
         sh "mvn package"
       }
